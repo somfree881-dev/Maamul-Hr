@@ -1,0 +1,214 @@
+[
+  {
+    "filename": "202610180001_foundation.sql",
+    "sha256": "356f353bb9ce677fcabb8919ed70fbafe9c0c3b0dca9196706bee75c507fef47",
+    "tables": [
+      "companies",
+      "company_memberships",
+      "branches",
+      "departments",
+      "positions",
+      "employees",
+      "employee_contacts",
+      "employee_guarantors",
+      "employee_documents",
+      "employment_contracts",
+      "salary_structures",
+      "salary_history",
+      "attendance_devices",
+      "device_employee_mappings",
+      "raw_attendance_events",
+      "attendance_summaries",
+      "attendance_corrections",
+      "attendance_sync_logs",
+      "work_shifts",
+      "shift_assignments",
+      "leave_types",
+      "leave_policies",
+      "leave_requests",
+      "overtime_records",
+      "employee_incidents",
+      "damage_recovery_plans",
+      "damage_recovery_installments",
+      "salary_advances",
+      "advance_repayments",
+      "payroll_periods",
+      "payroll_runs",
+      "payroll_items",
+      "payroll_approvals",
+      "salary_payments",
+      "payment_allocations",
+      "employee_performance_reviews",
+      "notifications",
+      "application_settings",
+      "holidays",
+      "authorized_deductions",
+      "audit_logs"
+    ],
+    "views": [],
+    "functions": [
+      "has_role",
+      "can_access",
+      "audit_change",
+      "can_access_document"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180002_workflows.sql",
+    "sha256": "693f3788dcd77b9f63bd0be8d1245b2d4640b1c9d62ea3001608ba988c3c756e",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "payroll_round",
+      "apply_payroll_policy",
+      "create_company",
+      "set_membership",
+      "enforce_employee_scope",
+      "validate_leave",
+      "request_leave",
+      "review_correction",
+      "schedule_recovery",
+      "generate_payroll",
+      "transition_payroll",
+      "record_payment",
+      "reverse_payment",
+      "protect_financial_source"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180003_attendance.sql",
+    "sha256": "082af4517918696a68cd57437211564a945c7e5981a5fbc5a0df4badfb858cc6",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "ingest_device_events",
+      "save_attendance",
+      "review_absence",
+      "review_request"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180004_hardening.sql",
+    "sha256": "b22201ae68e6669a71bd0b9c96b794c31759e5374d3fc67cf78a85311cb69263",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "employee_directory",
+      "validate_mapping",
+      "guard_payroll_sources",
+      "default_pending"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180005_integrity.sql",
+    "sha256": "6a1f8cbf8b4a8c1d61ea53602cbb9b14e97c399c15d9bc5149cdd5642a18bf61",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "freeze_period",
+      "validate_recovery_source",
+      "record_salary_history",
+      "guard_correction",
+      "freeze_payroll_attendance",
+      "backfill_device_mappings"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180006_reporting.sql",
+    "sha256": "d96646d84b9ee338d2b0a39986b22a819bcf4a8d4d54b85e41935c8c1dafe457",
+    "tables": [],
+    "views": [
+      "payroll_balances"
+    ],
+    "functions": [
+      "employee_counts",
+      "dashboard_metrics",
+      "run_maintenance",
+      "service_save_attendance"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180007_permissions.sql",
+    "sha256": "494b33e39a3372435e38599fcef3e41ffe88c928b0dcfb39f60c80c27d95374f",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "attendance_employee",
+      "validate_recovery_source"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180008_analytics.sql",
+    "sha256": "a56b5c0858f2e33cf641f03a22c0d737c3c92bd87e20673d95f07f7eb8c58fcf",
+    "tables": [],
+    "views": [
+      "leave_balances"
+    ],
+    "functions": [
+      "employee_counts",
+      "analytics_series",
+      "transfer_device_mappings"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180009_final_guards.sql",
+    "sha256": "5d971e8078a6266fa18e064e4ecdddf670cbf0d67bb0c9571e8148ddf70160aa",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "guard_payroll_sources",
+      "guard_payroll_request",
+      "recovery_incidents"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180010_self_service.sql",
+    "sha256": "fc48041f26ae554958218d176be52ec6c9095ecf53a363fb16a115367159ebf2",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "request_correction",
+      "request_advance"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180011_financial_balances.sql",
+    "sha256": "8cab83394483c260445b43e6f9ecde6cbf30d56a667c03d6bd28a5e80f2530e8",
+    "tables": [],
+    "views": [
+      "advance_balances",
+      "damage_balances"
+    ],
+    "functions": [],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610180012_payroll_leave_guards.sql",
+    "sha256": "7c41049dce527cd61a66c4df13cd167d18707c559d919c42dc8df644bb6eb767",
+    "tables": [],
+    "views": [],
+    "functions": [
+      "guard_employee_payroll_overlap",
+      "validate_scheduled_leave_days"
+    ],
+    "dropsTables": false
+  },
+  {
+    "filename": "202610190001_explicit_api_grants.sql",
+    "sha256": "bf878eac593ee478bb0bcf5263e8a3c736804a1cd7e45aaa1c296729896fd1b4",
+    "tables": [],
+    "views": [],
+    "functions": [],
+    "dropsTables": false
+  }
+]

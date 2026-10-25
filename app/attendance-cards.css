@@ -1,0 +1,170 @@
+﻿.app-shell .hr-snapshot {
+  display: block;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #d5e7df;
+  background: linear-gradient(165deg, #eff9f3 0%, #ffffff 55%);
+  box-shadow: 0 8px 28px #17473408;
+  position: relative;
+}
+.app-shell .hr-snapshot::before {
+  content: "";
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg, #18836b, #a5d9bd);
+}
+.app-shell .hr-snapshot .hr-card-heading {
+  padding: 24px 24px 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.app-shell .hr-snapshot .attendance-card-kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #23795f;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 1.4px;
+  margin-bottom: 9px;
+}
+.app-shell .hr-snapshot h2 {
+  color: #183e32;
+  font-size: 23px;
+  letter-spacing: -0.6px;
+}
+.app-shell .hr-snapshot .hr-card-heading p {
+  color: #61786d;
+  font-size: 14px;
+  margin-top: 7px;
+}
+.app-shell .hr-snapshot .hr-today-tag {
+  background: #fff;
+  color: #34725b;
+  border: 1px solid #d2e6d9;
+  border-radius: 20px;
+  font-size: 12px;
+  max-width: 100%;
+  white-space: normal;
+}
+.app-shell .hr-snapshot .hr-ring-wrap {
+  margin: 23px auto 20px;
+  width: 180px;
+  height: 180px;
+}
+.app-shell .hr-snapshot .attendance-ring-track {
+  stroke: #e0eee7;
+}
+.app-shell .hr-snapshot .hr-ring-label strong {
+  color: #194d3b;
+  font-size: 36px;
+  font-weight: 750;
+}
+.app-shell .hr-snapshot .hr-ring-label span {
+  color: #406957;
+  font-size: 13px;
+  font-weight: 600;
+}
+.app-shell .hr-snapshot .hr-ring-label small {
+  color: #728479;
+  font-size: 12px;
+  max-width: 145px;
+  line-height: 1.5;
+}
+.app-shell .hr-snapshot .hr-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 22px;
+  padding: 0;
+}
+.app-shell .hr-snapshot .hr-status-list > div {
+  background: #f4f9f6;
+  border: 1px solid #e1ece5;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.app-shell .hr-snapshot .hr-status-list > div:nth-child(2) {
+  background: #f3f6ff;
+  border-color: #e3e9f6;
+}
+.app-shell .hr-snapshot .hr-status-list > div:nth-child(3) {
+  background: #fff8ee;
+  border-color: #f1e6d5;
+}
+.app-shell .hr-snapshot .hr-status-list > div:nth-child(4) {
+  background: #f6f7f9;
+  border-color: #e5e9ed;
+}
+.app-shell .hr-snapshot .hr-status-list > div > span {
+  font-size: 12px;
+  color: #53685f;
+  gap: 7px;
+}
+.app-shell .hr-snapshot .hr-status-list strong {
+  color: #203f34;
+  font-size: 25px;
+  font-weight: 750;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.app-shell .hr-snapshot .hr-snapshot-link {
+  margin: 18px 22px 22px;
+  padding: 14px;
+  border: 1px solid #18735c;
+  background: #18735c;
+  color: white;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.app-shell .hr-snapshot .hr-snapshot-link:hover {
+  background: #115a48;
+}
+[data-theme="dark"] .app-shell .hr-snapshot {
+  background: linear-gradient(160deg, #1c3835, #192a3c 60%);
+  border-color: #35534c;
+}
+[data-theme="dark"] .app-shell .hr-snapshot h2,
+[data-theme="dark"] .app-shell .hr-snapshot .hr-ring-label strong,
+[data-theme="dark"] .app-shell .hr-snapshot .hr-status-list strong {
+  color: #e4f4eb;
+}
+[data-theme="dark"] .app-shell .hr-snapshot .attendance-card-kicker {
+  color: #8acdb8;
+}
+[data-theme="dark"] .app-shell .hr-snapshot .hr-card-heading p,
+[data-theme="dark"] .app-shell .hr-snapshot .hr-ring-label span,
+[data-theme="dark"] .app-shell .hr-snapshot .hr-ring-label small,
+[data-theme="dark"] .app-shell .hr-snapshot .hr-status-list > div > span {
+  color: #b9cec5;
+}
+[data-theme="dark"] .app-shell .hr-snapshot .attendance-ring-track {
+  stroke: #345249;
+}
+[data-theme="dark"] .app-shell .hr-snapshot .hr-status-list > div {
+  background: #ffffff05;
+  border-color: #ffffff15;
+}
+[data-theme="dark"] .app-shell .hr-snapshot .hr-today-tag {
+  background: #ffffff08;
+  border-color: #456457;
+  color: #b8decb;
+}
+@media (max-width: 620px) {
+  .app-shell .hr-snapshot .hr-card-heading {
+    padding: 22px 20px 0;
+  }
+  .app-shell .hr-snapshot .hr-status-list {
+    margin: 0 20px;
+  }
+  .app-shell .hr-snapshot .hr-snapshot-link {
+    margin: 18px 20px 20px;
+  }
+}

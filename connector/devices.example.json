@@ -1,0 +1,18 @@
+{
+  "endpoint": "https://YOUR_APP/api/connector",
+  "queue_path": "queue.sqlite3",
+  "poll_seconds": 60,
+  "devices": [
+    {
+      "id": "SUPABASE_DEVICE_UUID",
+      "ip": "192.168.1.201",
+      "port": 4370,
+      "timezone": "Africa/Mogadishu",
+      "protocol": "pyzk",
+      "token_env": "DEVICE_ONE_TOKEN",
+      "password_env": "ZK_PASSWORD",
+      "force_udp": false,
+      "punch_map": {"0": 0, "1": 1}
+    }
+  ]
+}

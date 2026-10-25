@@ -1,0 +1,310 @@
+/* Shared readable typography across every workspace module. */
+.attendance-branches {
+  display: grid;
+  gap: 24px;
+  margin: 24px 0;
+}
+.branch-attendance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+}
+.branch-attendance-heading h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.branch-attendance-heading p,
+.branch-device-list {
+  color: #526277;
+  font-size: 14px;
+}
+.branch-device-list {
+  padding: 0 24px 20px;
+}
+.module-navigation {
+  align-items: center;
+}
+.app-shell .module-picker {
+  margin-left: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.app-shell .module-picker select {
+  width: auto;
+  max-width: 280px;
+}
+@media (max-width: 620px) {
+  .app-shell .module-picker {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .app-shell .module-picker select {
+    max-width: 100%;
+  }
+}
+.workspace-shortcuts {
+  position: relative;
+}
+.workspace-shortcuts nav {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 60;
+  width: min(580px, calc(100vw - 36px));
+  max-height: 65vh;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 14px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 16px 48px #172b4026;
+}
+.workspace-shortcuts nav a {
+  padding: 10px 12px;
+  border-radius: 7px;
+  color: #263b50;
+  font-size: 15px;
+}
+.workspace-shortcuts nav a:hover {
+  background: #e2f2eb;
+  color: #165d49;
+}
+.workspace-loading {
+  padding: 24px 0;
+}
+.workspace-loading h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+.workspace-loading p {
+  color: #526277;
+}
+.loading-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+.loading-cards div {
+  height: 180px;
+  border-radius: 16px;
+  background: #e5ecf2;
+}
+@media (max-width: 620px) {
+  .app-shell .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 72px;
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .app-shell .topbar-right {
+    flex-wrap: wrap;
+  }
+  .workspace-shortcuts nav {
+    position: fixed;
+    top: 120px;
+    right: 18px;
+  }
+  .loading-cards {
+    grid-template-columns: 1fr;
+  }
+}
+.app-shell {
+  --ink: #172b40;
+  --muted: #526277;
+  font-family: "Segoe UI", system-ui, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.app-shell main {
+  line-height: 1.65;
+}
+.app-shell .page-heading h1,
+.app-shell .hr-page-heading h1 {
+  font-size: clamp(30px, 3vw, 38px);
+  font-weight: 750;
+}
+.app-shell .page-heading p,
+.app-shell .hr-page-heading p,
+.app-shell .settings-card p,
+.app-shell .settings-card ol,
+.app-shell .report-card p,
+.app-shell .auth-card p {
+  font-size: 16px;
+  color: #526277;
+}
+.app-shell .eyebrow,
+.app-shell .overline,
+.app-shell .hr-overline {
+  color: #526277;
+  font-size: 13px;
+  font-weight: 700;
+}
+.app-shell th {
+  font-size: 14px;
+  font-weight: 700;
+  color: #34475c;
+  background: #f1f5f9;
+  text-transform: capitalize;
+  padding: 16px 22px;
+}
+.app-shell td {
+  font-size: 16px;
+  font-weight: 500;
+  color: #263b50;
+  padding: 18px 22px;
+}
+.app-shell td a {
+  color: #17538c;
+  font-weight: 650;
+}
+.app-shell label {
+  font-size: 15px;
+  font-weight: 650;
+  color: #34475c;
+}
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  font: inherit;
+  font-size: 16px;
+  color: #20364b;
+  min-height: 46px;
+  border-color: #bdcbd8;
+}
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+.app-shell .button {
+  font-size: 15px;
+  font-weight: 650;
+  min-height: 44px;
+}
+.app-shell .module-tabs a,
+.app-shell .report-actions,
+.app-shell .row-actions button {
+  font-size: 14px;
+  font-weight: 650;
+  color: #245987;
+}
+.app-shell .module-tabs a.selected {
+  color: #165d49;
+  background: #e2f2eb;
+  border-color: #9bcbb9;
+}
+.app-shell .row-actions button {
+  padding: 8px 12px;
+  border-color: #c4d2df;
+}
+.app-shell .pagination,
+.app-shell .profile-grid dt,
+.app-shell .profile-grid dd,
+.app-shell .alert {
+  font-size: 15px;
+}
+.app-shell .pagination,
+.app-shell .profile-grid dt {
+  color: #526277;
+}
+.app-shell .profile-grid dd {
+  color: #20364b;
+  font-weight: 600;
+}
+.app-shell .nav-item {
+  font-size: 16px;
+  font-weight: 600;
+}
+.app-shell .nav-group > p {
+  font-size: 12px;
+  color: #b3c4d4;
+}
+.app-shell .workspace-select strong,
+.app-shell .user strong {
+  font-size: 15px;
+}
+.app-shell .workspace-select span,
+.app-shell .secure-note p {
+  font-size: 13px;
+  color: #bdd0df;
+}
+.app-shell .secure-note strong {
+  font-size: 14px;
+}
+.app-shell .breadcrumb,
+.app-shell .connection,
+.app-shell footer {
+  font-size: 14px;
+}
+.app-shell footer {
+  color: #526277;
+}
+.app-shell .hr-stat-label {
+  font-size: 16px;
+  font-weight: 650;
+  color: #34475c;
+}
+.app-shell .hr-stat-value {
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: 750;
+  color: #172b40;
+}
+.app-shell .hr-stat-detail {
+  font-size: 14px;
+  color: #526277;
+}
+.app-shell .hr-card h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: #20364b;
+}
+.app-shell .hr-card-heading p,
+.app-shell .hr-status-list > div,
+.app-shell .hr-payroll-lines > div,
+.app-shell .hr-quick-actions strong {
+  font-size: 15px;
+  color: #42566b;
+}
+.app-shell .hr-card-footer,
+.app-shell .hr-card-footer a,
+.app-shell .hr-chart-legend,
+.app-shell .hr-period-switch a,
+.app-shell .hr-quick-actions a > div > span {
+  font-size: 13px;
+  color: #526277;
+}
+.app-shell :is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #237bba;
+  outline-offset: 3px;
+}
+@media (max-width: 620px) {
+  .app-shell .hr-stats {
+    grid-template-columns: 1fr;
+  }
+  .app-shell .hr-stat {
+    padding: 22px;
+  }
+  .app-shell .hr-stat-value {
+    font-size: 36px;
+  }
+  .app-shell .hr-card-heading {
+    flex-wrap: wrap;
+  }
+  .app-shell .breadcrumb {
+    font-size: 13px;
+  }
+  .app-shell .connection {
+    font-size: 12px;
+  }
+}
