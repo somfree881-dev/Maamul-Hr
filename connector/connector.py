@@ -26,6 +26,7 @@ class Queue:
         self.db.execute('PRAGMA synchronous=FULL')
         self.db.execute('CREATE TABLE IF NOT EXISTS events (device TEXT NOT NULL, source_key TEXT NOT NULL, payload TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(device,source_key))')
         self.db.execute('CREATE INDEX IF NOT EXISTS pending ON events(device,sent)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS user_imports (request_id TEXT PRIMARY KEY, device TEXT NOT NULL, payload TEXT NOT NULL, next_offset INTEGER NOT NULL DEFAULT 0)')
 
     def put(self, device: str, event: dict):
         with self.db:
@@ -37,6 +38,19 @@ class Queue:
     def acknowledge(self, device: str, events: list[dict]):
         with self.db:
             self.db.executemany('UPDATE events SET sent=1 WHERE device=? AND source_key=?', [(device,e['source_key']) for e in events])
+
+    def save_users(self, request_id, device, users):
+        with self.db:
+            self.db.execute('INSERT OR IGNORE INTO user_imports(request_id,device,payload) VALUES(?,?,?)',(request_id,device,json.dumps(users)))
+
+    def pending_users(self, device):
+        row=self.db.execute('SELECT request_id,payload,next_offset FROM user_imports WHERE device=? ORDER BY rowid LIMIT 1',(device,)).fetchone()
+        return (row[0],json.loads(row[1]),row[2]) if row else None
+
+    def acknowledge_users(self, request_id, offset, done):
+        with self.db:
+            if done: self.db.execute('DELETE FROM user_imports WHERE request_id=?',(request_id,))
+            else: self.db.execute('UPDATE user_imports SET next_offset=? WHERE request_id=?',(offset,request_id))
 
     def close(self):
         self.db.close()
@@ -78,6 +92,68 @@ def retrieve(device: dict, queue: Queue | None, test=False):
     finally:
         if connection is not None:
             connection.disconnect()
+
+def user_metadata(record):
+    # Explicit allowlist. Never access password, card, privilege, fingerprint or face fields.
+    return {'device_user_id':str(record.user_id),
+            'name':str(record.name or '').strip(),
+            'device_group':str(getattr(record,'group_id','') or '').strip()}
+
+def retrieve_users(device):
+    if device.get('protocol','pyzk')!='pyzk':
+        raise ValueError('Device user import requires a supported pyzk model')
+    from zk import ZK
+    client=ZK(device['ip'],port=int(device.get('port',4370)),timeout=15,
+              password=int(os.environ.get(device.get('password_env','ZK_PASSWORD'),'0')),
+              force_udp=device.get('force_udp',False),ommit_ping=True)
+    connection=None
+    try:
+        connection=client.connect()
+        users=[user_metadata(user) for user in connection.get_users()]
+        if len(users)>20000: raise ValueError('Device roster exceeds import limit')
+        return users
+    finally:
+        if connection is not None: connection.disconnect()
+
+def process_user_import(endpoint, token, device, queue):
+    poll=send_payload(endpoint,token,{'device_id':device['id'],'mode':'users_poll'})
+    request_id=poll.get('request_id')
+    pending=queue.pending_users(device['id'])
+    if pending is not None and pending[0]!=request_id:
+        # A sealed, failed or cancelled request is no longer accepting uploads.
+        queue.acknowledge_users(pending[0],pending[2],True)
+        pending=None
+    if not request_id: return
+    if pending is None:
+        try:
+            users=retrieve_users(device)
+        except Exception:
+            send_payload(endpoint,token,{'device_id':device['id'],'mode':'users_error','request_id':request_id,'error':'read_failed'})
+            raise
+        queue.save_users(request_id,device['id'],users)
+        pending=queue.pending_users(device['id'])
+    request_id,users,offset=pending
+    while True:
+        chunk=users[offset:offset+500]
+        done=offset+len(chunk)>=len(users)
+        try:
+            result=send_payload(endpoint,token,{'device_id':device['id'],'mode':'users_batch','request_id':request_id,'offset':offset,'users':chunk,'final':done})
+        except HTTPError as error:
+            if error.code in (400,413,422):
+                send_payload(endpoint,token,{'device_id':device['id'],'mode':'users_error','request_id':request_id,'error':'read_failed'})
+                queue.acknowledge_users(request_id,offset,True)
+            raise
+        if result.get('cancelled'):
+            queue.acknowledge_users(request_id,offset,True)
+            return
+        expected=offset+len(chunk)
+        if result.get('received')!=expected: raise RuntimeError('User roster batch was not acknowledged')
+        queue.acknowledge_users(request_id,expected,done)
+        if done:
+            LOG.info('Employee roster staged for device %s; administrator confirmation required',device['id'])
+            return
+        offset=expected
+
 
 class NoCredentialRedirects(HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, msg, headers, newurl):
@@ -203,6 +279,12 @@ def main():
                                   hints.get(exc.code, 'Check server configuration.'))
                     else:
                         LOG.error('Device %s failed (%s)',device['id'],type(exc).__name__)
+                if not args.test and not args.test_api:
+                    try:
+                        process_user_import(config['endpoint'],token,device,queue)
+                    except Exception as exc:
+                        # Keep names, response bodies and tokens out of logs. Attendance sync is independent.
+                        LOG.error('Employee import check failed for device %s (%s)',device['id'],type(exc).__name__)
             if args.once or args.test or args.test_api:
                 if any_failure: raise SystemExit(1)
                 break

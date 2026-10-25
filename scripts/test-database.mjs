@@ -1,6 +1,6 @@
 /** Isolated real PostgreSQL harness. No remote URLs, credentials or production database access. */
 import EmbeddedPostgres from "embedded-postgres";
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import assert from "node:assert/strict";
@@ -1151,6 +1151,336 @@ try {
     (await client.query("select resolve_login_email('admin.fixture') email"))
       .rows[0].email === "fixture-admin@maamul.invalid",
     "Only service endpoint resolves a login name to its authentication email",
+  );
+  const importCompany = (
+    await as(adminA, "select create_company('Device import fixtures') id")
+  ).rows[0].id;
+  const importBranch = (
+    await as(
+      adminA,
+      "insert into branches(company_id,name) values($1,'Dabka fixture') returning id",
+      [importCompany],
+    )
+  ).rows[0].id;
+  const importOtherBranch = (
+    await as(
+      adminA,
+      "insert into branches(company_id,name) values($1,'Other fixture') returning id",
+      [importCompany],
+    )
+  ).rows[0].id;
+  const importDevice = (
+    await as(
+      adminA,
+      "insert into attendance_devices(company_id,branch_id,name,model,serial_number,ip_address,connector_key_hash) values($1,$2,'K14 fixture','K14','IMPORT-ONLY','192.0.2.10',$3) returning id",
+      [importCompany, importBranch, "a".repeat(64)],
+    )
+  ).rows[0].id;
+  const existingImportEmployee = (
+    await as(
+      adminA,
+      "insert into employees(company_id,branch_id,first_name,last_name,start_date,basic_salary) values($1,$2,'Existing','Person','2026-01-01',555) returning id",
+      [importCompany, importBranch],
+    )
+  ).rows[0].id;
+  const otherBranchEmployee = (
+    await as(
+      adminA,
+      "insert into employees(company_id,branch_id,first_name,last_name,start_date,basic_salary) values($1,$2,'Other','Branch','2026-01-01',600) returning id",
+      [importCompany, importOtherBranch],
+    )
+  ).rows[0].id;
+  const importBatch = (
+    await as(adminA, "select request_device_employee_import($1) id", [
+      importDevice,
+    ])
+  ).rows[0].id;
+  check(
+    (
+      await as(adminA, "select request_device_employee_import($1) id", [
+        importDevice,
+      ])
+    ).rows[0].id === importBatch,
+    "Repeated import request reuses the active device snapshot",
+  );
+  await rejected(
+    () =>
+      as(adminB, "select request_device_employee_import($1)", [importDevice]),
+    "Other company cannot request device employees",
+    /Forbidden/,
+  );
+  await rejected(
+    () =>
+      as(employee, "select request_device_employee_import($1)", [importDevice]),
+    "Employee cannot request a device import",
+    /Forbidden/,
+  );
+  await rejected(
+    () =>
+      as(adminA, "select stage_device_employee_users($1,$2,0,'[]',true)", [
+        importDevice,
+        importBatch,
+      ]),
+    "Browser users cannot upload connector snapshots directly",
+    /permission denied/,
+  );
+  const roster = Array.from({ length: 22 }, (_, i) => ({
+    device_user_id: String(i + 1),
+    name:
+      i === 0
+        ? "Existing Person"
+        : i === 21
+          ? ""
+          : i === 1
+            ? "Asha Fixture"
+            : `New Person ${i}`,
+    device_group: "1",
+  }));
+  const history = Array.from({ length: 418 }, (_, i) => ({
+    device_user_id: String((i % 22) + 1),
+    occurred_at: `2026-10-15T08:${String(Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}+03:00`,
+    punch: i % 2,
+    source_key: createHash("sha256")
+      .update("import-fixture-" + i)
+      .digest("hex"),
+  }));
+  await client.query("reset role");
+  await client.query("set role service_role");
+  await rejected(
+    () =>
+      client.query("select stage_device_employee_users($1,$2,0,$3,true)", [
+        importDevice,
+        importBatch,
+        JSON.stringify([
+          {
+            device_user_id: "1",
+            name: "Unsafe",
+            password: "must-not-be-staged",
+          },
+        ]),
+      ]),
+    "Database rejects unapproved password metadata",
+    /approved non-biometric/,
+  );
+  await rejected(
+    () =>
+      client.query("select stage_device_employee_users($1,$2,0,'[]',true)", [
+        randomUUID(),
+        importBatch,
+      ]),
+    "Connector snapshot cannot target another device request",
+    /Invalid import scope/,
+  );
+  await client.query("select ingest_device_events($1,$2)", [
+    importDevice,
+    JSON.stringify(history),
+  ]);
+  await client.query("select stage_device_employee_users($1,$2,0,$3,false)", [
+    importDevice,
+    importBatch,
+    JSON.stringify(roster.slice(0, 10)),
+  ]);
+  check(
+    (
+      await client.query(
+        "select stage_device_employee_users($1,$2,0,$3,false) n",
+        [importDevice, importBatch, JSON.stringify(roster.slice(0, 10))],
+      )
+    ).rows[0].n === 10,
+    "Repeated partial metadata batch preserves roster offsets",
+  );
+  await client.query("select stage_device_employee_users($1,$2,10,$3,true)", [
+    importDevice,
+    importBatch,
+    JSON.stringify(roster.slice(10)),
+  ]);
+  check(
+    (
+      await client.query(
+        "select stage_device_employee_users($1,$2,0,$3,true) n",
+        [importDevice, importBatch, JSON.stringify(roster)],
+      )
+    ).rows[0].n === 22,
+    "Retried roster upload is idempotent",
+  );
+  let importPreview = (
+    await as(adminA, "select preview_device_employee_import($1) p", [
+      importBatch,
+    ])
+  ).rows[0].p;
+  check(
+    importPreview.new_users === 20 &&
+      importPreview.existing_matches === 1 &&
+      importPreview.conflicts === 1 &&
+      importPreview.unmapped_attendance === 418,
+    "Preview classifies 22 users and 418 historical events without creating profiles",
+  );
+  check(
+    (
+      await as(
+        adminA,
+        "select count(*)::int n from employees where company_id=$1 and status='inactive'",
+        [importCompany],
+      )
+    ).rows[0].n === 0,
+    "Device snapshot alone never creates employees",
+  );
+  await rejected(
+    () =>
+      as(adminB, "select preview_device_employee_import($1)", [importBatch]),
+    "Other company cannot read a device import preview",
+    /Forbidden/,
+  );
+  const decisions = roster.map((u, i) => ({
+    device_user_id: u.device_user_id,
+    action: i === 0 ? "link" : i === 21 ? "skip" : "create",
+    ...(i === 0 ? { employee_id: existingImportEmployee } : {}),
+  }));
+  await as(
+    adminA,
+    "insert into device_employee_mappings(company_id,branch_id,device_id,device_user_id,employee_id) values($1,$2,$3,'1',$4)",
+    [importCompany, importBranch, importDevice, existingImportEmployee],
+  );
+  await rejected(
+    () =>
+      as(
+        adminA,
+        "select confirm_device_employee_import($1,$2,'2026-01-01',$3)",
+        [importBatch, importPreview.preview_token, JSON.stringify(decisions)],
+      ),
+    "Stale preview cannot create duplicate employees after a mapping changes",
+    /Preview changed/,
+  );
+  importPreview = (
+    await as(adminA, "select preview_device_employee_import($1) p", [
+      importBatch,
+    ])
+  ).rows[0].p;
+  const badDecisions = decisions.map((x, i) =>
+    i === 0 ? { ...x, employee_id: otherBranchEmployee } : x,
+  );
+  await rejected(
+    () =>
+      as(
+        adminA,
+        "select confirm_device_employee_import($1,$2,'2026-01-01',$3)",
+        [
+          importBatch,
+          importPreview.preview_token,
+          JSON.stringify(badDecisions),
+        ],
+      ),
+    "Import cannot link an employee from another branch",
+    /company and branch/,
+  );
+  const crossCompanyDecisions = decisions.map((x, i) =>
+    i === 0 ? { ...x, employee_id: eB } : x,
+  );
+  await rejected(
+    () =>
+      as(
+        adminA,
+        "select confirm_device_employee_import($1,$2,'2026-01-01',$3)",
+        [
+          importBatch,
+          importPreview.preview_token,
+          JSON.stringify(crossCompanyDecisions),
+        ],
+      ),
+    "Import cannot link an employee from another company",
+    /company and branch/,
+  );
+  const importResult = (
+    await as(
+      adminA,
+      "select confirm_device_employee_import($1,$2,'2026-01-01',$3) r",
+      [importBatch, importPreview.preview_token, JSON.stringify(decisions)],
+    )
+  ).rows[0].r;
+  check(
+    importResult.created === 20 &&
+      importResult.linked === 1 &&
+      importResult.skipped === 1 &&
+      importResult.history_mapped === 399 &&
+      importResult.unmapped_remaining === 19,
+    "Confirmed import creates only new profiles and maps matching historical users",
+  );
+  const repeated = (
+    await as(
+      adminA,
+      "select confirm_device_employee_import($1,$2,'2026-01-01',$3) r",
+      [importBatch, importPreview.preview_token, JSON.stringify(decisions)],
+    )
+  ).rows[0].r;
+  check(
+    JSON.stringify(repeated) === JSON.stringify(importResult),
+    "Repeated confirmation reuses results without duplicate employees or mappings",
+  );
+  check(
+    (
+      await as(adminA, "select basic_salary from employees where id=$1", [
+        existingImportEmployee,
+      ])
+    ).rows[0].basic_salary === "555.00",
+    "Existing employee salary is never overwritten by device import",
+  );
+  const originalStamp = (
+    await as(
+      adminA,
+      "select occurred_at from raw_attendance_events where device_id=$1 and source_key=$2",
+      [importDevice, history[0].source_key],
+    )
+  ).rows[0].occurred_at;
+  check(
+    originalStamp.toISOString() ===
+      new Date(history[0].occurred_at).toISOString(),
+    "Historical timezone conversion and original instant remain unchanged",
+  );
+  check(
+    (await as(adminB, "select id from device_employee_imports")).rowCount === 0,
+    "Import staging RLS hides another company's roster",
+  );
+  const nextImport = (
+    await as(adminA, "select request_device_employee_import($1) id", [
+      importDevice,
+    ])
+  ).rows[0].id;
+  await client.query("reset role");
+  await client.query("set role service_role");
+  await client.query("select stage_device_employee_users($1,$2,0,$3,true)", [
+    importDevice,
+    nextImport,
+    JSON.stringify(roster),
+  ]);
+  const nextPreview = (
+    await as(adminA, "select preview_device_employee_import($1) p", [
+      nextImport,
+    ])
+  ).rows[0].p;
+  check(
+    nextPreview.new_users === 0 && nextPreview.existing_matches === 21,
+    "A later import recognizes existing mappings rather than creating duplicate people",
+  );
+  const linkOnly = roster.map((u, i) => ({
+    device_user_id: u.device_user_id,
+    action: i === 21 ? "skip" : "link",
+    ...(i !== 21
+      ? {
+          employee_id: nextPreview.users.find(
+            (x) => x.device_user_id === u.device_user_id,
+          ).employee_id,
+        }
+      : {}),
+  }));
+  check(
+    (
+      await as(
+        adminA,
+        "select confirm_device_employee_import($1,$2,null,$3) r",
+        [nextImport, nextPreview.preview_token, JSON.stringify(linkOnly)],
+      )
+    ).rows[0].r.created === 0,
+    "Link-only reimport does not require changing existing employment dates",
   );
   console.log(
     `\n${checks} PostgreSQL integration checks passed. Supabase Auth/Storage HTTP and hardware remain separate acceptance tests.`,

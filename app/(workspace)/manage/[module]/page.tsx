@@ -129,6 +129,9 @@ export default async function ModulePage({
         }
         choices={choices}
         createOnly={s.membership.role === "employee"}
+        importDevices={["super_admin", "company_admin", "hr_manager"].includes(
+          s.membership.role,
+        )}
       />
     </>
   );

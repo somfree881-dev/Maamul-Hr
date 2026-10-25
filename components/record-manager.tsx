@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { DeviceEmployeeImport } from "./device-employee-import";
 import { GenerateSalaries } from "./generate-salaries";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +21,7 @@ export function RecordManager({
   write,
   choices,
   createOnly = false,
+  importDevices = false,
 }: {
   module: string;
   rows: Row[];
@@ -28,6 +30,7 @@ export function RecordManager({
   write: boolean;
   choices: Record<string, { id: string; label: string }[]>;
   createOnly?: boolean;
+  importDevices?: boolean;
 }) {
   const m = modules[module],
     router = useRouter(),
@@ -439,6 +442,12 @@ export function RecordManager({
                               Approve correction
                             </button>
                           )}
+                        {module === "devices" && importDevices && (
+                          <DeviceEmployeeImport
+                            device={String(row.id)}
+                            company={company}
+                          />
+                        )}
                         {module === "devices" && (
                           <label
                             className="button button-outline"

@@ -5,6 +5,7 @@ import "./readability.css";
 import "./mobile-theme.css";
 import "./attendance-cards.css";
 import "./salary-generator.css";
+import "./device-import.css";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
