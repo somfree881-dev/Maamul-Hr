@@ -1,8 +1,9 @@
 import "server-only";
 import { cache } from "react";
-import { supabase } from "./supabase/server";
+import { configured, supabase } from "./supabase/server";
 // React cache is scoped to one server render, never shared across users.
 const loadSession = cache(async () => {
+  if (!configured()) throw new Error("Authentication required");
   const db = await supabase();
   const {
     data: { user },

@@ -6,6 +6,7 @@ import { pdf, xlsx, csv } from "@/lib/exports";
 import { failure } from "@/lib/http";
 export async function GET(request: Request) {
   try {
+    await session();
     const p = new URL(request.url).searchParams,
       company = z.uuid().parse(p.get("company")),
       id = z.uuid().parse(p.get("employee")),
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       .eq("company_id", company)
       .eq("id", id)
       .single();
-    if (error) throw new Error("Employee unavailable");
+    if (error) throw new Error("Forbidden");
     const results = await Promise.all([
       db
         .from("attendance_summaries")

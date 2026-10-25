@@ -1,0 +1,8 @@
+﻿export default function Forbidden() {
+  return (
+    <main className="panel empty">
+      <h1>Access denied</h1>
+      <p>Your account does not have permission to open this page.</p>
+    </main>
+  );
+}

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { forbidden, notFound } from "next/navigation";
 import { context } from "@/lib/context";
-import { modules, canWrite, canView } from "@/lib/modules";
+import { modules, canWrite, canViewModule } from "@/lib/modules";
 import { RecordManager } from "@/components/record-manager";
 import { AttendanceRunner } from "@/components/attendance-runner";
 import { AttendanceOverview } from "@/components/attendance-overview";
@@ -29,12 +29,7 @@ export default async function ModulePage({
         </Link>
       </div>
     );
-  if (!canView(s.membership.role, m.area))
-    return (
-      <div className="alert error">
-        Your role does not have access to this module.
-      </div>
-    );
+  if (!canViewModule(s.membership.role, module)) forbidden();
   const query = await searchParams;
   if (module === "attendance")
     return (

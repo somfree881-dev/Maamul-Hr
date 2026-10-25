@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { session } from "@/lib/auth";
+import { session, requireRole } from "@/lib/auth";
 import { checkOrigin, failure } from "@/lib/http";
 const bucket = "employee-documents";
 function validateMagic(bytes: Uint8Array, type: string) {
@@ -17,13 +17,19 @@ function validateMagic(bytes: Uint8Array, type: string) {
 }
 export async function POST(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     if (Number(request.headers.get("content-length") ?? 0) > 11 * 1024 * 1024)
       throw new Error("File too large");
     const f = await request.formData();
     const company = z.uuid().parse(f.get("company_id")),
       employee = z.uuid().parse(f.get("employee_id"));
-    const { db } = await session(company);
+    const { db, membership } = await session(company);
+    requireRole(membership?.role, [
+      "super_admin",
+      "company_admin",
+      "hr_manager",
+    ]);
     const replacement = f.get("replace_id")
       ? z.uuid().parse(f.get("replace_id"))
       : null;
@@ -101,6 +107,7 @@ export async function POST(request: Request) {
 }
 export async function GET(request: Request) {
   try {
+    await session();
     const p = new URL(request.url).searchParams;
     const { db } = await session(z.uuid().parse(p.get("company")));
     const { data, error } = await db
@@ -128,9 +135,15 @@ export async function GET(request: Request) {
 }
 export async function DELETE(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     const b = await request.json();
-    const { db } = await session(z.uuid().parse(b.company_id));
+    const { db, membership } = await session(z.uuid().parse(b.company_id));
+    requireRole(membership?.role, [
+      "super_admin",
+      "company_admin",
+      "hr_manager",
+    ]);
     const { data, error } = await db
       .from("employee_documents")
       .select("storage_path")

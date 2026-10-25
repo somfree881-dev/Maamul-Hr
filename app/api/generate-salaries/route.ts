@@ -8,6 +8,7 @@ import { processDay } from "@/lib/attendance-service";
 export const maxDuration = 300;
 export async function POST(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     const input = z
       .object({

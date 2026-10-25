@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileChartColumn } from "lucide-react";
 import { context } from "@/lib/context";
-import { modules, canView } from "@/lib/modules";
+import { modules, canViewModule } from "@/lib/modules";
 import { DateTime } from "luxon";
 import { Analytics, type AnalyticsData } from "@/components/analytics";
 import { reportRecords } from "@/lib/report-records";
@@ -40,9 +40,7 @@ export default async function Reports({
     "performance",
     "incidents",
     "sync",
-  ].filter(
-    (key) => !s?.membership || canView(s.membership.role, modules[key].area),
-  );
+  ].filter((key) => !s?.membership || canViewModule(s.membership.role, key));
   const selected = available.includes(p.report ?? "")
     ? p.report!
     : (available[0] ?? "employees");

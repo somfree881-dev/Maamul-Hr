@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { modules, canView } from "@/lib/modules";
+import { modules, canViewModule } from "@/lib/modules";
 import { AppControls, MobileNavigation } from "./mobile-app";
 import { AccountMenu } from "./account-menu";
 import {
@@ -147,26 +147,35 @@ export function Shell({
         {navigation.map((group) => (
           <div className="nav-group" key={group.label}>
             <p>{group.label}</p>
-            {group.items.map(([label, href, icon]) => {
-              const Icon = icons[icon];
-              return (
-                <Link
-                  onClick={() => setOpen(false)}
-                  className={`nav-item ${(href === "/" ? path === "/" : path.startsWith(href)) ? "active" : ""}`}
-                  href={href}
-                  prefetch={false}
-                  onMouseEnter={() => router.prefetch(href)}
-                  onFocus={() => router.prefetch(href)}
-                  key={href}
-                >
-                  <Icon size={19} />
-                  <span>{label}</span>
-                  {label === "Devices & integration" && (
-                    <span className="nav-dot" />
-                  )}
-                </Link>
-              );
-            })}
+            {group.items
+              .filter(([, href]) =>
+                href.startsWith("/manage/")
+                  ? canViewModule(role, href.split("/")[2])
+                  : href === "/settings"
+                    ? ["super_admin", "company_admin"].includes(role ?? "") ||
+                      !companyId
+                    : true,
+              )
+              .map(([label, href, icon]) => {
+                const Icon = icons[icon];
+                return (
+                  <Link
+                    onClick={() => setOpen(false)}
+                    className={`nav-item ${(href === "/" ? path === "/" : path.startsWith(href)) ? "active" : ""}`}
+                    href={href}
+                    prefetch={false}
+                    onMouseEnter={() => router.prefetch(href)}
+                    onFocus={() => router.prefetch(href)}
+                    key={href}
+                  >
+                    <Icon size={19} />
+                    <span>{label}</span>
+                    {label === "Devices & integration" && (
+                      <span className="nav-dot" />
+                    )}
+                  </Link>
+                );
+              })}
           </div>
         ))}
         <div className="sidebar-bottom">
@@ -234,9 +243,7 @@ export function Shell({
                   aria-label="All workspace modules"
                 >
                   {Object.entries(modules)
-                    .filter(
-                      ([, module]) => !!role && canView(role, module.area),
-                    )
+                    .filter(([key]) => canViewModule(role, key))
                     .map(([key, module]) => (
                       <Link
                         key={key}

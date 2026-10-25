@@ -1,8 +1,14 @@
 import Link from "next/link";
+import { forbidden } from "next/navigation";
 import { context } from "@/lib/context";
 import { SettingsForms } from "@/components/settings";
 export default async function Settings() {
   const s = await context();
+  if (
+    s.membership &&
+    !["super_admin", "company_admin"].includes(s.membership.role)
+  )
+    forbidden();
   const schedule =
     s?.membership &&
     ["super_admin", "company_admin"].includes(s.membership.role)

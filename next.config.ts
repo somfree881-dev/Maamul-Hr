@@ -10,6 +10,7 @@ if (
     "Refusing to start/build: a privileged Supabase key is set in NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Remove it and rotate it before continuing.",
   );
 const config: NextConfig = {
+  experimental: { authInterrupts: true },
   poweredByHeader: false,
   async headers() {
     return [

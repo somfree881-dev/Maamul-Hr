@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { session } from "@/lib/auth";
+import { session, requireRole } from "@/lib/auth";
 import { checkOrigin, failure } from "@/lib/http";
 const actions: Record<string, { rpc: string; schema: z.ZodType }> = {
   payroll_schedule: {
@@ -98,15 +98,76 @@ const actions: Record<string, { rpc: string; schema: z.ZodType }> = {
 };
 export async function POST(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     const body = await request.json();
     const action = actions[body.action];
     if (!action) throw new Error("Unknown workflow");
-    const { db } = await session();
-    const { data, error } = await db.rpc(
-      action.rpc,
-      action.schema.parse(body.params),
-    );
+    const validated = action.schema.parse(body.params) as Record<
+      string,
+      unknown
+    >;
+    let company = validated.p_company as string | undefined;
+    const current = await session();
+    const target: Record<string, [string, string]> = {
+      generate: ["payroll_periods", "p_period"],
+      transition: ["payroll_runs", "p_run"],
+      payment: ["payroll_items", "p_item"],
+      reversal: ["salary_payments", "p_payment"],
+      correction: ["attendance_corrections", "p_id"],
+      backfill: ["attendance_devices", "p_device"],
+      review: [
+        validated.p_kind === "leave" ? "leave_requests" : "overtime_records",
+        "p_id",
+      ],
+      schedule: [
+        validated.p_kind === "advance"
+          ? "salary_advances"
+          : "damage_recovery_plans",
+        "p_parent",
+      ],
+    };
+    if (target[body.action]) {
+      const [table, key] = target[body.action];
+      const result = await current.db
+        .from(table)
+        .select("company_id")
+        .eq("id", validated[key])
+        .maybeSingle();
+      if (result.error || !result.data) throw new Error("Forbidden");
+      company = result.data.company_id;
+    }
+    const { db, membership } = await session(company);
+    const roles: Record<string, string[]> = {
+      generate: ["super_admin", "company_admin", "accountant"],
+      payment: ["super_admin", "company_admin", "accountant"],
+      reversal: ["super_admin", "company_admin", "accountant"],
+      schedule: ["super_admin", "company_admin", "accountant"],
+      membership: ["super_admin", "company_admin"],
+      payroll_schedule: ["super_admin", "company_admin"],
+      transition:
+        validated.p_status === "verified"
+          ? ["super_admin", "company_admin", "accountant"]
+          : ["super_admin", "company_admin"],
+      backfill: ["super_admin", "company_admin", "hr_manager"],
+      correction: [
+        "super_admin",
+        "company_admin",
+        "hr_manager",
+        "branch_manager",
+        "supervisor",
+      ],
+      review: [
+        "super_admin",
+        "company_admin",
+        "hr_manager",
+        "branch_manager",
+        "supervisor",
+      ],
+    };
+    if (body.action !== "company")
+      requireRole(membership?.role, roles[body.action] ?? []);
+    const { data, error } = await db.rpc(action.rpc, validated);
     if (error) throw new Error(error.message);
     return NextResponse.json({ data });
   } catch (e) {

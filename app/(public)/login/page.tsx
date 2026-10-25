@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { inspectPublicSupabaseConfig } from "@/lib/supabase/config";
 export default function Login() {
@@ -24,15 +24,16 @@ export default function Login() {
             )
               throw new Error("Configure Supabase first. See README.md.");
             const f = new FormData(e.currentTarget);
-            const db = createBrowserClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-            );
-            const { error } = await db.auth.signInWithPassword({
-              email: String(f.get("email")),
-              password: String(f.get("password")),
+            const response = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                identifier: f.get("identifier"),
+                password: f.get("password"),
+              }),
             });
-            if (error) throw error;
+            const result = await response.json();
+            if (!response.ok) throw Error(result.error ?? "Sign-in failed");
             window.location.assign("/");
           } catch (e) {
             setMessage(e instanceof Error ? e.message : "Sign-in failed");
@@ -42,8 +43,13 @@ export default function Login() {
         }}
       >
         <label>
-          Email
-          <input name="email" type="email" autoComplete="username" required />
+          Email or login name
+          <input
+            name="identifier"
+            type="text"
+            autoComplete="username"
+            required
+          />
         </label>
         <label>
           Password
@@ -62,8 +68,8 @@ export default function Login() {
         )}
         <Button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
       </form>
-      <p className="muted">
-        Ask your company administrator to invite you through Supabase Auth.
+      <p>
+        <Link href="/forgot-password">Forgot password?</Link>
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ module: string }> },
 ) {
   try {
+    await session();
     checkOrigin(request);
     const { module } = await params;
     const m = modules[module];
@@ -139,6 +140,7 @@ export async function DELETE(
   { params }: { params: Promise<{ module: string }> },
 ) {
   try {
+    await session();
     checkOrigin(request);
     const { module } = await params;
     const m = modules[module];

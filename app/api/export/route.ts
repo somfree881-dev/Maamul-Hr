@@ -1,18 +1,20 @@
 import { z } from "zod";
 import { DateTime } from "luxon";
 import { session } from "@/lib/auth";
-import { modules } from "@/lib/modules";
+import { modules, canViewModule } from "@/lib/modules";
 import { csv, pdf, xlsx } from "@/lib/exports";
 import { failure } from "@/lib/http";
 import { reportRecords } from "@/lib/report-records";
 export async function GET(request: Request) {
   try {
+    await session();
     const p = new URL(request.url).searchParams,
       company = z.uuid().parse(p.get("company")),
       module = p.get("module") ?? "employees",
       m = modules[module];
     if (!m) throw new Error("Invalid report");
-    const { db } = await session(company);
+    const { db, membership } = await session(company);
+    if (!canViewModule(membership?.role, module)) throw new Error("Forbidden");
     const { data: organization, error: companyError } = await db
       .from("companies")
       .select("timezone")

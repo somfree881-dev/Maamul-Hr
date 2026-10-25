@@ -44,7 +44,7 @@ try {
   client = server.getPgClient("postgres", "127.0.0.1");
   await client.connect();
   await client.query(`create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
- create schema auth;create table auth.users(id uuid primary key);
+ create schema auth;create table auth.users(id uuid primary key,email text);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth,public to anon,authenticated,service_role;
  grant execute on function auth.uid() to anon,authenticated,service_role;
@@ -995,21 +995,163 @@ try {
     ).rows[0].status === "draft",
     "Scheduled payroll never automatically approves or pays salaries",
   );
-  const manualCompany=(await as(adminA,"select create_company('Manual payroll fixture') id")).rows[0].id;
-  const manualEmployee=(await as(adminA,"insert into employees(company_id,first_name,last_name,start_date,basic_salary) values($1,'Payroll','Fixture','2020-01-01',260) returning id",[manualCompany])).rows[0].id;
+  const manualCompany = (
+    await as(adminA, "select create_company('Manual payroll fixture') id")
+  ).rows[0].id;
+  const manualEmployee = (
+    await as(
+      adminA,
+      "insert into employees(company_id,first_name,last_name,start_date,basic_salary) values($1,'Payroll','Fixture','2020-01-01',260) returning id",
+      [manualCompany],
+    )
+  ).rows[0].id;
   await client.query("reset role");
-  await client.query("insert into attendance_summaries(company_id,employee_id,work_date,status,reviewed,late_minutes) select $1,$2,d::date,'present',true,case when d::date='2020-09-01' then 60 else 0 end from generate_series('2020-09-01'::date,'2020-09-30'::date,'1 day') d",[manualCompany,manualEmployee]);
-  await rejected(()=>as(adminB,"select generate_monthly_salaries($1,'2020-09-01',true)",[manualCompany]),"Monthly payroll rejects another company",/Forbidden/);
-  const manualPeriod=(await as(adminA,"insert into payroll_periods(company_id,name,start_date,end_date,divisor,currency) values($1,'Sep fixture','2020-09-01','2020-09-30',26,'USD') returning id",[manualCompany])).rows[0].id;
-  await as(adminA,"insert into authorized_deductions(company_id,employee_id,period_id,category,amount,legal_basis,authorization_reference) values($1,$2,$3,'other',3,'Fixture policy','TEST')",[manualCompany,manualEmployee,manualPeriod]);
-  await as(adminA,"insert into salary_advances(company_id,employee_id,requested_amount,approved_amount,reason,status,disbursed_at,disbursement_reference,authorization_reference) values($1,$2,26,26,'Fixture','disbursed',now(),'TEST','TEST')",[manualCompany,manualEmployee]);
+  await client.query(
+    "insert into attendance_summaries(company_id,employee_id,work_date,status,reviewed,late_minutes) select $1,$2,d::date,'present',true,case when d::date='2020-09-01' then 60 else 0 end from generate_series('2020-09-01'::date,'2020-09-30'::date,'1 day') d",
+    [manualCompany, manualEmployee],
+  );
+  await rejected(
+    () =>
+      as(adminB, "select generate_monthly_salaries($1,'2020-09-01',true)", [
+        manualCompany,
+      ]),
+    "Monthly payroll rejects another company",
+    /Forbidden/,
+  );
+  const manualPeriod = (
+    await as(
+      adminA,
+      "insert into payroll_periods(company_id,name,start_date,end_date,divisor,currency) values($1,'Sep fixture','2020-09-01','2020-09-30',26,'USD') returning id",
+      [manualCompany],
+    )
+  ).rows[0].id;
+  await as(
+    adminA,
+    "insert into authorized_deductions(company_id,employee_id,period_id,category,amount,legal_basis,authorization_reference) values($1,$2,$3,'other',3,'Fixture policy','TEST')",
+    [manualCompany, manualEmployee, manualPeriod],
+  );
+  await as(
+    adminA,
+    "insert into salary_advances(company_id,employee_id,requested_amount,approved_amount,reason,status,disbursed_at,disbursement_reference,authorization_reference) values($1,$2,26,26,'Fixture','disbursed',now(),'TEST','TEST')",
+    [manualCompany, manualEmployee],
+  );
   await client.query("reset role");
-  await client.query("update attendance_summaries set status='absent' where employee_id=$1 and work_date='2020-09-02'",[manualEmployee]);
-  const manualRun=(await as(adminA,"select generate_monthly_salaries($1,'2020-09-01',true) id",[manualCompany])).rows[0].id;
-  const manualItem=(await as(adminA,"select late_deductions,net,advance_recovery,unpaid_absence,other_deductions from payroll_items where run_id=$1",[manualRun])).rows[0];
-  check(manualItem.late_deductions==='1.25'&&manualItem.net==='219.75'&&manualItem.advance_recovery==='26.00'&&manualItem.unpaid_absence==='10.00'&&manualItem.other_deductions==='3.00',"Monthly salary deducts authorized late minutes using period hourly rate");
-  check((await as(adminA,"select generate_monthly_salaries($1,'2020-09-01',true) id",[manualCompany])).rows[0].id===manualRun,"Monthly salary retry reuses the run without duplicate deductions");
-  await rejected(()=>as(adminA,"select generate_monthly_salaries($1,'2999-01-01',true)",[manualCompany]),"Monthly generation rejects future attendance",/completed month/);
+  await client.query(
+    "update attendance_summaries set status='absent' where employee_id=$1 and work_date='2020-09-02'",
+    [manualEmployee],
+  );
+  const manualRun = (
+    await as(
+      adminA,
+      "select generate_monthly_salaries($1,'2020-09-01',true) id",
+      [manualCompany],
+    )
+  ).rows[0].id;
+  const manualItem = (
+    await as(
+      adminA,
+      "select late_deductions,net,advance_recovery,unpaid_absence,other_deductions from payroll_items where run_id=$1",
+      [manualRun],
+    )
+  ).rows[0];
+  check(
+    manualItem.late_deductions === "1.25" &&
+      manualItem.net === "219.75" &&
+      manualItem.advance_recovery === "26.00" &&
+      manualItem.unpaid_absence === "10.00" &&
+      manualItem.other_deductions === "3.00",
+    "Monthly salary deducts authorized late minutes using period hourly rate",
+  );
+  check(
+    (
+      await as(
+        adminA,
+        "select generate_monthly_salaries($1,'2020-09-01',true) id",
+        [manualCompany],
+      )
+    ).rows[0].id === manualRun,
+    "Monthly salary retry reuses the run without duplicate deductions",
+  );
+  await rejected(
+    () =>
+      as(adminA, "select generate_monthly_salaries($1,'2999-01-01',true)", [
+        manualCompany,
+      ]),
+    "Monthly generation rejects future attendance",
+    /completed month/,
+  );
+  await client.query("reset role");
+  await client.query(
+    "delete from company_memberships where company_id=$1 and user_id=$2",
+    [cA, employee],
+  );
+  await rejected(
+    () =>
+      as(
+        employee,
+        "select request_advance($1,$2,10,'revoked membership fixture')",
+        [cA, eA],
+      ),
+    "Removed member cannot request advance through an old employee link",
+    /Forbidden/,
+  );
+  await rejected(
+    () =>
+      as(
+        employee,
+        "select request_correction($1,$2,'2026-10-01','2026-10-01T08:00:00Z','2026-10-01T09:00:00Z','revoked membership fixture')",
+        [cA, eA],
+      ),
+    "Removed member cannot request attendance correction",
+    /Forbidden/,
+  );
+  await rejected(
+    () =>
+      as(
+        employee,
+        "select request_leave($1,$2,$3,'2026-10-01','2026-10-01',1,'revoked membership fixture')",
+        [cA, eA, lt],
+      ),
+    "Removed member cannot request leave",
+    /Forbidden/,
+  );
+  check(
+    (await as(employee, "select id from employees where company_id=$1", [cA]))
+      .rowCount === 0,
+    "Membership removal immediately hides linked employee data",
+  );
+  await as(adminA, "select set_login_name('  Admin.Fixture  ')");
+  check(
+    (await as(adminA, "select username from account_login_names")).rows[0]
+      .username === "admin.fixture",
+    "Login names normalize case and whitespace",
+  );
+  check(
+    (await as(adminB, "select username from account_login_names")).rowCount ===
+      0,
+    "Other users cannot read login names",
+  );
+  await rejected(
+    () => as(adminB, "select set_login_name('ADMIN.FIXTURE')"),
+    "Duplicate login names cannot hijack an account",
+    /duplicate key/,
+  );
+  await rejected(
+    () => as(employee, "select resolve_login_email('admin.fixture')"),
+    "Authenticated clients cannot enumerate emails by login name",
+    /permission denied/,
+  );
+  await client.query("reset role");
+  await client.query(
+    "update auth.users set email='fixture-admin@maamul.invalid' where id=$1",
+    [adminA],
+  );
+  await client.query("set role service_role");
+  check(
+    (await client.query("select resolve_login_email('admin.fixture') email"))
+      .rows[0].email === "fixture-admin@maamul.invalid",
+    "Only service endpoint resolves a login name to its authentication email",
+  );
   console.log(
     `\n${checks} PostgreSQL integration checks passed. Supabase Auth/Storage HTTP and hardware remain separate acceptance tests.`,
   );

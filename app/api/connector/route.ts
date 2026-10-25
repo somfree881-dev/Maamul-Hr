@@ -6,6 +6,12 @@ import { connectorAuthenticated } from "@/lib/connector-auth";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
+    const bearer = request.headers.get("authorization");
+    if (!bearer || !/^Bearer [A-Za-z0-9_-]{32,128}$/.test(bearer))
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
     if (Number(request.headers.get("content-length") ?? 0) > 1048576)
       return NextResponse.json({ error: "Batch too large" }, { status: 413 });
     const raw = await request.text();

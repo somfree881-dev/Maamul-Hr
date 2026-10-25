@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { forbidden, notFound } from "next/navigation";
 import { z } from "zod";
 import { context } from "@/lib/context";
-import { canWrite } from "@/lib/modules";
+import { canWrite, canViewModule } from "@/lib/modules";
 import { Documents } from "@/components/documents";
 import { DateTime } from "luxon";
 import { reportRecords } from "@/lib/report-records";
@@ -28,6 +28,7 @@ export default async function Profile({
   const s = await context();
   if (!s?.membership)
     return <div className="alert">Connect your workspace first.</div>;
+  if (!canViewModule(s.membership.role, "employees")) forbidden();
   const company = s.membership.company_id;
   const { data: e, error } = await s.db
     .from("employees")

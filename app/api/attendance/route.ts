@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { session } from "@/lib/auth";
+import { session, requireRole } from "@/lib/auth";
 import { checkOrigin, failure } from "@/lib/http";
 import { processDay } from "@/lib/attendance-service";
 const schema = z.object({
@@ -10,9 +10,17 @@ const schema = z.object({
 });
 export async function POST(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     const input = schema.parse(await request.json());
-    const { db } = await session(input.company_id);
+    const { db, membership } = await session(input.company_id);
+    requireRole(membership?.role, [
+      "super_admin",
+      "company_admin",
+      "hr_manager",
+      "branch_manager",
+      "supervisor",
+    ]);
     return NextResponse.json(await processDay(db, input));
   } catch (e) {
     return failure(e);

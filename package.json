@@ -12,7 +12,9 @@
     "test:db": "node scripts/test-database.mjs",
     "supabase:check": "node scripts/check-supabase.mjs",
     "supabase:inventory": "node scripts/migration-inventory.mjs",
-    "format": "prettier --write app components lib tests scripts docs *.json *.ts *.mjs *.md"
+    "format": "prettier --write app components lib tests scripts docs *.json *.ts *.mjs *.md",
+    "test:security": "node scripts/test-public-security.mjs",
+    "test:security:browser": "node scripts/test-security-browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",

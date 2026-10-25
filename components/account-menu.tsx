@@ -54,12 +54,12 @@ export function AccountMenu({
         {email ? (
           <>
             <Link
-              href="/settings"
+              href="/account"
               onClick={() => {
                 if (menu.current) menu.current.open = false;
               }}
             >
-              <Settings size={18} /> Account & settings
+              <Settings size={18} /> Your account
             </Link>
             <form action="/auth/signout" method="post">
               <button type="submit">

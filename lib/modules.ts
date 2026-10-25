@@ -605,10 +605,45 @@ export function canWrite(role: string | undefined, area: Module["area"]) {
   );
 }
 export function canView(role: string | undefined, area: Module["area"]) {
-  if (!role) return false;
+  if (
+    !role ||
+    ![
+      "super_admin",
+      "company_admin",
+      "hr_manager",
+      "branch_manager",
+      "supervisor",
+      "accountant",
+      "employee",
+    ].includes(role)
+  )
+    return false;
   if (["super_admin", "company_admin"].includes(role)) return true;
   if (area === "finance") return role === "accountant" || role === "employee";
   if (area === "private" || area === "hr")
     return role === "hr_manager" || role === "employee";
+  return true;
+}
+
+/** Payroll administration is separate from an employee's own salary records. RLS scopes own records. */
+export function canViewModule(role: string | undefined, key: string) {
+  const m = modules[key];
+  if (!m || !canView(role, m.area)) return false;
+  if (key === "audit" || key === "policies")
+    return ["super_admin", "company_admin"].includes(role ?? "");
+  if (
+    role === "employee" &&
+    [
+      "payroll",
+      "periods",
+      "salaries",
+      "deductions",
+      "devices",
+      "mappings",
+      "sync",
+      "assignments",
+    ].includes(key)
+  )
+    return false;
   return true;
 }

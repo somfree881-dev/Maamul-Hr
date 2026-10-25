@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/server";
+import { session } from "@/lib/auth";
 import { checkOrigin, failure } from "@/lib/http";
 export async function POST(request: Request) {
   try {
+    const { db } = await session();
     checkOrigin(request);
-    const db = await supabase();
     await db.auth.signOut();
     return NextResponse.redirect(new URL("/login", request.url), 303);
   } catch (e) {

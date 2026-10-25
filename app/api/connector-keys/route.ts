@@ -3,6 +3,7 @@ import { session, requireRole } from "@/lib/auth";
 import { checkOrigin, failure } from "@/lib/http";
 export async function POST(request: Request) {
   try {
+    await session();
     checkOrigin(request);
     const input = z
       .object({

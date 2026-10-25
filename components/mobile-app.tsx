@@ -14,7 +14,7 @@ import {
   Wallet,
   FileChartColumn,
 } from "lucide-react";
-import { canView } from "@/lib/modules";
+import { canViewModule } from "@/lib/modules";
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: string }>;
@@ -192,7 +192,11 @@ export function MobileNavigation({ role }: { role?: string }) {
       area: "finance" as const,
     },
     { title: "Reports", href: "/reports", icon: FileChartColumn, area: null },
-  ].filter((link) => !role || !link.area || canView(role, link.area));
+  ].filter((link) =>
+    link.href.startsWith("/manage/")
+      ? canViewModule(role, link.href.split("/")[2])
+      : true,
+  );
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       {links.map(({ title, href, icon: Icon }) => {
